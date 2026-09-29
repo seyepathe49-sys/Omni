@@ -1,0 +1,18 @@
+name: Export Omni ZIP
+on:
+  push:
+    branches:
+      - chatgpt-export-2026-09-29
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create archive
+        run: |
+          zip -r Omni-preview.zip . -x ".git/*"
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: Omni-preview
+          path: Omni-preview.zip
