@@ -124,3 +124,221 @@
 @utility pulse-dot {
   animation: pulse-dot 2.4s ease-in-out infinite;
 }
+
+
+/* Home AI / Gemini-inspired glow — kept within Omna's monochrome design language */
+.omna-home {
+  min-height: calc(100vh - 6rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.omna-hero {
+  width: min(760px, 100%);
+  text-align: center;
+  padding: 3rem 0 4rem;
+}
+
+.omna-orb-wrap {
+  position: relative;
+  width: 118px;
+  height: 118px;
+  margin: 0 auto 1.25rem;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+.omna-orb {
+  position: absolute;
+  inset: 8px;
+  border-radius: 999px;
+  filter: blur(17px);
+  opacity: .62;
+  transform-origin: center;
+  animation: omna-orb-float 6s ease-in-out infinite;
+}
+
+.omna-orb-a {
+  background:
+    radial-gradient(circle at 28% 30%, rgba(255,255,255,.95), transparent 28%),
+    radial-gradient(circle at 72% 64%, rgba(150,165,190,.62), transparent 48%),
+    rgba(255,255,255,.22);
+}
+
+.omna-orb-b {
+  inset: 17px 4px 11px 19px;
+  background: radial-gradient(circle at 70% 30%, rgba(255,255,255,.75), transparent 25%),
+    radial-gradient(circle at 35% 72%, rgba(105,120,145,.7), transparent 52%);
+  filter: blur(22px);
+  animation: omna-orb-breathe 4.5s ease-in-out infinite;
+}
+
+.omna-orb-c {
+  inset: 0;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow:
+    0 0 26px rgba(255,255,255,.08),
+    0 0 72px rgba(170,185,210,.10);
+  filter: blur(.2px);
+  animation: omna-orb-ring 8s linear infinite;
+}
+
+.omna-orb-core {
+  position: relative;
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.30), rgba(255,255,255,.08) 48%, rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.16),
+    0 0 22px rgba(255,255,255,.12),
+    0 0 55px rgba(150,165,190,.10);
+  backdrop-filter: blur(12px);
+}
+
+.omna-composer {
+  width: min(680px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 10px 11px 9px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 1.35rem;
+  background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+  box-shadow:
+    0 12px 40px rgba(0,0,0,.28),
+    inset 0 1px rgba(255,255,255,.035);
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+  backdrop-filter: blur(18px);
+}
+
+.omna-composer.is-focused {
+  border-color: rgba(255,255,255,.18);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,.34),
+    0 0 0 1px rgba(255,255,255,.025),
+    0 0 42px rgba(170,185,210,.07);
+  transform: translateY(-1px);
+}
+
+.omna-textarea {
+  min-height: 42px;
+  max-height: 140px;
+  flex: 1;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 9px 2px;
+}
+
+.omna-textarea::placeholder {
+  color: color-mix(in oklch, var(--muted-foreground) 82%, white 18%);
+}
+
+.omna-icon-button,
+.omna-send {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  transition: background .2s ease, color .2s ease, transform .2s ease, opacity .2s ease;
+}
+
+.omna-icon-button {
+  color: var(--muted-foreground);
+}
+
+.omna-icon-button:hover {
+  background: rgba(255,255,255,.06);
+  color: var(--foreground);
+}
+
+.omna-send {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.omna-send:not(:disabled):hover {
+  transform: scale(1.04);
+}
+
+.omna-send:disabled {
+  opacity: .28;
+}
+
+.omna-suggestion {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255,255,255,.025);
+  padding: 8px 12px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease;
+}
+
+.omna-suggestion:hover {
+  border-color: var(--input);
+  background: rgba(255,255,255,.05);
+  color: var(--foreground);
+  transform: translateY(-1px);
+}
+
+@keyframes omna-orb-float {
+  0%, 100% { transform: translate3d(-2px, 0, 0) scale(.96); }
+  50% { transform: translate3d(3px, -4px, 0) scale(1.04); }
+}
+
+@keyframes omna-orb-breathe {
+  0%, 100% { transform: scale(.88) rotate(-8deg); opacity: .42; }
+  50% { transform: scale(1.08) rotate(8deg); opacity: .72; }
+}
+
+@keyframes omna-orb-ring {
+  from { transform: rotate(0deg) scale(.98); }
+  to { transform: rotate(360deg) scale(.98); }
+}
+
+@media (max-width: 640px) {
+  .omna-home {
+    min-height: calc(100vh - 4.5rem);
+  }
+
+  .omna-hero {
+    padding: 2rem 0 3rem;
+  }
+
+  .omna-orb-wrap {
+    width: 96px;
+    height: 96px;
+  }
+
+  .omna-orb-core {
+    width: 42px;
+    height: 42px;
+  }
+
+  .omna-composer {
+    border-radius: 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omna-orb,
+  .omna-orb-b,
+  .omna-orb-c {
+    animation: none;
+  }
+}
