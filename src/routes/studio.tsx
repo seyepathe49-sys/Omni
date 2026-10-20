@@ -9,6 +9,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 
 type ConsoleLine = { id: number; time: string; level: "info" | "success" | "warn" | "error"; message: string };
+type StudioVersion = { id: number; html: string; createdAt: string; label: string };
 
 const initialHtml = `<!doctype html>
 <html lang="it">
@@ -51,7 +52,8 @@ function StudioPage() {
   const [model, setModel] = useState("gpt-4.1");
   const [hydrated, setHydrated] = useState(false);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
-  const [activeTab, setActiveTab] = useState<"preview" | "console" | "files">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "console" | "files" | "history">("preview");
+  const [versions, setVersions] = useState<StudioVersion[]>([]);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [html, setHtml] = useState(initialHtml);
   const [projectName, setProjectName] = useState("Nuovo progetto");
@@ -74,11 +76,12 @@ function StudioPage() {
     try {
       const draft = localStorage.getItem("omni-studio-draft-v1");
       if (draft) {
-        const parsed = JSON.parse(draft) as { html?: string; projectName?: string; provider?: string; model?: string };
+        const parsed = JSON.parse(draft) as { html?: string; projectName?: string; provider?: string; model?: string; versions?: StudioVersion[] };
         if (parsed.html && parsed.html.toLowerCase().includes("<html")) setHtml(parsed.html);
         if (parsed.projectName) setProjectName(parsed.projectName);
         if (parsed.provider === "openai" || parsed.provider === "anthropic" || parsed.provider === "gemini") setProvider(parsed.provider);
         if (parsed.model) setModel(parsed.model);
+        if (Array.isArray(parsed.versions)) setVersions(parsed.versions.slice(0, 10));
         setLines((current) => [...current, { id: Date.now(), time: timeNow(), level: "success", message: "Bozza precedente ripristinata da questo dispositivo." }]);
       }
     } catch { /* Ignore invalid local drafts. */ }
@@ -87,9 +90,9 @@ function StudioPage() {
 
   useEffect(() => {
     if (!hydrated) return;
-    try { localStorage.setItem("omni-studio-draft-v1", JSON.stringify({ html, projectName, provider, model })); setSaved(true); }
+    try { localStorage.setItem("omni-studio-draft-v1", JSON.stringify({ html, projectName, provider, model, versions })); setSaved(true); }
     catch { addLine("warn", "Spazio locale non disponibile: esporta il progetto per non perdere le modifiche."); }
-  }, [html, projectName, provider, model, hydrated]);
+  }, [html, projectName, provider, model, versions, hydrated]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -134,6 +137,7 @@ function StudioPage() {
       });
       const data = await response.json() as { html?: string; error?: string; provider?: string; model?: string };
       if (!response.ok || !data.html) throw new Error(data.error || `Errore server (HTTP ${response.status}).`);
+      setVersions((current) => [{ id: Date.now(), html, createdAt: timeNow(), label: "Prima della modifica AI" }, ...current].slice(0, 10));
       setHtml(data.html);
       setProjectName(request.length > 32 ? request.slice(0, 32) + "…" : request);
       setSaved(true);
@@ -186,6 +190,7 @@ function StudioPage() {
                 <button onClick={() => setActiveTab("preview")} className={`flex items-center gap-2 border-b-2 px-3 py-3 text-xs ${activeTab === "preview" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}><Eye className="size-3.5" /> Anteprima</button>
                 <button onClick={() => setActiveTab("console")} className={`flex items-center gap-2 border-b-2 px-3 py-3 text-xs ${activeTab === "console" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}><Terminal className="size-3.5" /> Console <span className="rounded bg-accent px-1.5 py-0.5 text-[9px]">{lines.length}</span></button>
                 <button onClick={() => setActiveTab("files")} className={`flex items-center gap-2 border-b-2 px-3 py-3 text-xs ${activeTab === "files" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}><FileCode2 className="size-3.5" /> File</button>
+                <button onClick={() => setActiveTab("history")} className={`flex items-center gap-2 border-b-2 px-3 py-3 text-xs ${activeTab === "history" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}><RefreshCw className="size-3.5" /> Versioni <span className="rounded bg-accent px-1.5 py-0.5 text-[9px]">{versions.length}</span></button>
                 <span className="ml-auto hidden items-center gap-1.5 py-3 text-[10px] text-muted-foreground sm:flex"><Globe className="size-3" /> Preview locale</span>
               </div>
 
@@ -213,6 +218,8 @@ function StudioPage() {
                 <button onClick={() => { setActiveTab("preview"); setShowCode(false); }} className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 text-left hover:bg-accent/40"><FileCode2 className="size-5 text-muted-foreground" /><span className="min-w-0 flex-1"><span className="block text-xs font-medium">index.html</span><span className="mt-1 block text-[10px] text-muted-foreground">HTML · documento di anteprima</span></span><span className="text-[10px] text-muted-foreground">{Math.max(1, html.split("\n").length)} righe</span></button>
                 <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/70 p-3 text-[11px] leading-relaxed text-muted-foreground"><Folder className="mt-0.5 size-3.5 shrink-0" /> Questa demo contiene un singolo file HTML. La gestione completa di file e cartelle richiede il workspace di progetto persistente.</div>
               </div>}
+
+              {activeTab === "history" && <div className="min-h-[480px] flex-1 p-5 sm:p-7"><div className="mb-5"><h2 className="text-sm font-medium">Cronologia versioni</h2><p className="mt-1 text-xs text-muted-foreground">Le ultime 10 versioni sono conservate su questo dispositivo.</p></div>{versions.length === 0 ? <div className="rounded-xl border border-dashed border-border p-8 text-center"><RefreshCw className="mx-auto size-5 text-muted-foreground" /><p className="mt-3 text-xs text-muted-foreground">La cronologia apparirà dopo la prima modifica AI.</p></div> : <div className="space-y-2">{versions.map((version) => <div key={version.id} className="flex items-center gap-3 rounded-xl border border-border p-3"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface"><FileCode2 className="size-4 text-muted-foreground" /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{version.label}</p><p className="mt-1 text-[10px] text-muted-foreground">{version.createdAt}</p></div><button onClick={() => { setHtml(version.html); setSaved(true); setActiveTab("preview"); addLine("success", "Versione precedente ripristinata."); }} className="rounded-lg border border-border px-3 py-2 text-[10px] hover:bg-accent">Ripristina</button></div>)}</div>}</div>}
 
               {showCode && <div className="border-t border-border bg-[#08090b]">
                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-[11px] text-white/65"><span className="flex items-center gap-2"><Code2 className="size-3.5" /> index.html</span><button onClick={() => setShowCode(false)} className="text-white/45 hover:text-white"><X className="size-3.5" /></button></div>
