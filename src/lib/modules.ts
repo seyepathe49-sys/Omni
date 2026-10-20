@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckSquare,
   LayoutGrid,
+  MessagesSquare,
   NotebookPen,
   User,
   Wallet,
@@ -21,9 +22,9 @@ export type OmnaModule = {
 export const MODULES: OmnaModule[] = [
   {
     to: "/",
-    label: "Panoramica",
-    icon: LayoutGrid,
-    description: "Il tuo quadro generale: giornata, focus e priorità.",
+    label: "Chat",
+    icon: MessagesSquare,
+    description: "Parla con Omni e crea siti direttamente nella chat.",
     group: "core",
   },
   {
@@ -65,8 +66,8 @@ export const MODULES: OmnaModule[] = [
     to: "/studio",
     label: "OmniStudio",
     icon: BookOpen,
-    description: "Crea siti, prototipi e prodotti digitali con l’intelligenza artificiale.",
-    group: "life",
+    description: "Workspace dedicato per creare siti, prototipi e prodotti digitali.",
+    group: "core",
   },
   {
     to: "/profilo",
