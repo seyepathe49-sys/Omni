@@ -24,7 +24,7 @@ export function ModulePage({ module }: { module: OmnaModule }) {
         <div className="mx-auto flex size-11 items-center justify-center rounded-full border border-border bg-surface-raised"><Icon className="size-5 text-muted-foreground" strokeWidth={1.6} /></div>
         <h2 className="mt-4 font-display text-base font-medium">{module.label} sta prendendo forma</h2>
         <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">
-          La navigazione e il design system sono pronti. Questo spazio verrà collegato ai dati e alle azioni di Omna senza cambiare la struttura visiva.
+          La navigazione e il design system sono pronti. Questo spazio verrà collegato ai dati e alle azioni di Omni senza cambiare la struttura visiva.
         </p>
       </section>
     </div>
