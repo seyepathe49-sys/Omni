@@ -35,7 +35,7 @@ async function generateWithOpenAI(apiKey: string, model: string, prompt: string,
     body: JSON.stringify({
       model,
       instructions: "You are OmniStudio, an expert web product builder. Return ONLY a complete, self-contained HTML document with inline CSS and JavaScript. No markdown fences or explanations. Make it polished, responsive, accessible, and functional. Never include secrets or attempt to escape the iframe sandbox. Use only front-end browser capabilities; explain visibly if a backend is needed.",
-      input: currentHtml ? `Update this existing project according to the request. Preserve useful features and return the entire updated HTML document.\\n\\nREQUEST:\\n${prompt}\\n\\nCURRENT HTML:\\n${currentHtml}` : `Create a complete polished responsive website as a single HTML file.\\n\\nREQUEST:\\n${prompt}`,
+      input: currentHtml ? `Update this existing project according to the request. Preserve useful features and return the entire updated HTML document.\n\nREQUEST:\n${prompt}\n\nCURRENT HTML:\n${currentHtml}` : `Create a complete polished responsive website as a single HTML file.\n\nREQUEST:\n${prompt}`,
       max_output_tokens: 12000,
     }),
   });
