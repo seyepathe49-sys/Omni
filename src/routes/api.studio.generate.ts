@@ -10,6 +10,11 @@ const requestSchema = z.object({
 
 type Provider = z.infer<typeof requestSchema>["provider"];
 
+// Best-effort per-instance protection. Configure platform-level rate limiting and authentication before public production use.
+const requestWindows = new Map<string, { count: number; resetAt: number }>();
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 8;
+
 function htmlOnly(text: string) {
   const fenced = text.match(/```(?:html)?\s*([\s\S]*?)```/i);
   const candidate = (fenced?.[1] ?? text).trim();
@@ -62,9 +67,9 @@ async function generateWithAnthropic(apiKey: string, model: string, prompt: stri
 }
 
 async function generateWithGemini(apiKey: string, model: string, prompt: string, currentHtml: string) {
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: "You are OmniStudio, an expert web product builder. Return ONLY a complete, self-contained HTML document with inline CSS and JavaScript. No markdown fences or explanations. Make it polished, responsive, accessible, and functional. Never include secrets or attempt to escape the iframe sandbox. Use only front-end browser capabilities; explain via visible UI if a backend is needed." }] },
       contents: [{ role: "user", parts: [{ text: currentHtml ? `Update this existing project according to the request. Preserve useful features and return the entire updated HTML document.\n\nREQUEST:\n${prompt}\n\nCURRENT HTML:\n${currentHtml}` : `Create a complete polished responsive website as a single HTML file.\n\nREQUEST:\n${prompt}` }] }],
@@ -82,6 +87,22 @@ export const Route = createFileRoute("/api/studio/generate")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const origin = request.headers.get("origin");
+        let requestOrigin = "";
+        try { requestOrigin = new URL(request.url).origin; } catch { /* Invalid request URL. */ }
+        if (!origin || origin !== requestOrigin) {
+          return Response.json({ error: "Origine della richiesta non valida. Ricarica OmniStudio e riprova." }, { status: 403 });
+        }
+        const clientId = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+        const now = Date.now();
+        const currentWindow = requestWindows.get(clientId);
+        if (!currentWindow || currentWindow.resetAt <= now) {
+          requestWindows.set(clientId, { count: 1, resetAt: now + WINDOW_MS });
+        } else if (currentWindow.count >= MAX_REQUESTS_PER_WINDOW) {
+          return Response.json({ error: "Hai raggiunto il limite temporaneo di generazioni. Attendi qualche minuto e riprova." }, { status: 429 });
+        } else {
+          currentWindow.count += 1;
+        }
         try {
           const parsed = requestSchema.safeParse(await request.json());
           if (!parsed.success) {
