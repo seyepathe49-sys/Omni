@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Omna — Personal Operating System" },
+      { title: "Omni — Personal Operating System" },
       {
         name: "description",
         content:
-          "Omna riunisce attività, calendario, note, finanze, allenamento, studio e dati personali in un'unica interfaccia minimale.",
+          "Omni riunisce attività, calendario, note, finanze, allenamento, studio e dati personali in un'unica interfaccia minimale.",
       },
-      { property: "og:title", content: "Omna — Personal Operating System" },
+      { property: "og:title", content: "Omni — Personal Operating System" },
       {
         property: "og:description",
         content: "Ogni area della tua vita, in un'unica interfaccia minimale.",
