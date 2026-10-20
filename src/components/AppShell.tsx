@@ -27,7 +27,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
   return <div className="flex h-full flex-col">
     <div className="flex items-center gap-2.5 px-6 pt-6 pb-2">
       <div className="flex size-7 items-center justify-center rounded-md bg-foreground shadow-[0_0_18px_rgba(255,255,255,0.08)]"><span className="font-display text-[13px] font-semibold text-background">O</span></div>
-      <span className="font-display text-[15px] font-semibold tracking-tight">Omna</span>
+      <span className="font-display text-[15px] font-semibold tracking-tight">Omni</span>
       <span className="ml-auto rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">v0.1</span>
     </div>
     <div className="px-3 pt-3"><button type="button" className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-muted-foreground transition-all duration-200 hover:border-input hover:bg-surface-raised hover:text-foreground">
@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border bg-background lg:block"><SidebarContent /></aside>
     <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md lg:hidden">
       <button type="button" aria-label="Apri menu" onClick={() => setMobileOpen(true)} className="flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground"><Menu className="size-4" strokeWidth={1.75} /></button>
-      <div className="flex items-center gap-2"><div className="flex size-6 items-center justify-center rounded-md bg-foreground"><span className="font-display text-[11px] font-semibold text-background">O</span></div><span className="font-display text-sm font-semibold tracking-tight">Omna</span></div>
+      <div className="flex items-center gap-2"><div className="flex size-6 items-center justify-center rounded-md bg-foreground"><span className="font-display text-[11px] font-semibold text-background">O</span></div><span className="font-display text-sm font-semibold tracking-tight">Omni</span></div>
     </div>
     <div className={cn("fixed inset-0 z-50 lg:hidden", mobileOpen ? "pointer-events-auto" : "pointer-events-none")}>
       <div onClick={() => setMobileOpen(false)} className={cn("absolute inset-0 bg-background/70 backdrop-blur-sm transition-opacity duration-300", mobileOpen ? "opacity-100" : "opacity-0")} />
