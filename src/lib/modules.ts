@@ -3,7 +3,6 @@ import {
   BookOpen,
   CalendarDays,
   CheckSquare,
-  LayoutGrid,
   MessagesSquare,
   NotebookPen,
   User,
