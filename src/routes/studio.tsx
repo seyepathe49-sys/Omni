@@ -65,8 +65,9 @@ function StudioPage() {
   const [saved, setSaved] = useState(true);
   const previewTitle = useMemo(() => projectName.trim() || "Nuovo progetto", [projectName]);
   const instrumentedHtml = useMemo(() => {
-    const bridge = '<script>(function(){const send=(level,args)=>{try{window.parent.postMessage({type:"omni-studio-console",level,message:Array.from(args).map(v=>{try{return typeof v==="string"?v:JSON.stringify(v)}catch{return String(v)}}).join(" ").slice(0,1500)},"*")}catch{}};["log","info","warn","error"].forEach(level=>{const original=console[level].bind(console);console[level]=(...args)=>{send(level,args);original(...args)}});window.addEventListener("error",e=>send("error",[e.message+" ("+e.filename+":"+e.lineno+")"]));window.addEventListener("unhandledrejection",e=>send("error",["Unhandled promise rejection",e.reason]));window.addEventListener("load",()=>send("success",["Pagina caricata: "+document.title]));})();<\\/script>';
-    return /<\\/head\\s*>/i.test(html) ? html.replace(/<\\/head\\s*>/i, bridge + "</head>") : html;
+    const bridge = '<script>(function(){const send=(level,args)=>{try{window.parent.postMessage({type:"omni-studio-console",level,message:Array.from(args).map(v=>{try{return typeof v==="string"?v:JSON.stringify(v)}catch{return String(v)}}).join(" ").slice(0,1500)},"*")}catch{}};["log","info","warn","error"].forEach(level=>{const original=console[level].bind(console);console[level]=(...args)=>{send(level,args);original(...args)}});window.addEventListener("error",e=>send("error",[e.message+" ("+e.filename+":"+e.lineno+")"]));window.addEventListener("unhandledrejection",e=>send("error",["Unhandled promise rejection",e.reason]));window.addEventListener("load",()=>send("success",["Pagina caricata: "+document.title]));})();<\/script>';
+    const headClose = html.toLowerCase().indexOf("</head>");
+    return headClose >= 0 ? html.slice(0, headClose) + bridge + html.slice(headClose) : html;
   }, [html]);
 
   useEffect(() => {
@@ -74,7 +75,7 @@ function StudioPage() {
       const draft = localStorage.getItem("omni-studio-draft-v1");
       if (draft) {
         const parsed = JSON.parse(draft) as { html?: string; projectName?: string; provider?: string; model?: string };
-        if (parsed.html && /<html[\\s>]/i.test(parsed.html)) setHtml(parsed.html);
+        if (parsed.html && parsed.html.toLowerCase().includes("<html")) setHtml(parsed.html);
         if (parsed.projectName) setProjectName(parsed.projectName);
         if (parsed.provider === "openai" || parsed.provider === "anthropic" || parsed.provider === "gemini") setProvider(parsed.provider);
         if (parsed.model) setModel(parsed.model);
