@@ -28,6 +28,13 @@ export const MODULES: OmnaModule[] = [
     group: "core",
   },
   {
+    to: "/studio",
+    label: "OmniStudio",
+    icon: BookOpen,
+    description: "Workspace dedicato per creare siti, prototipi e prodotti digitali.",
+    group: "core",
+  },
+  {
     to: "/attivita",
     label: "Attività",
     icon: CheckSquare,
@@ -61,13 +68,6 @@ export const MODULES: OmnaModule[] = [
     icon: Activity,
     description: "Schede, sessioni e progressi fisici.",
     group: "life",
-  },
-  {
-    to: "/studio",
-    label: "OmniStudio",
-    icon: BookOpen,
-    description: "Workspace dedicato per creare siti, prototipi e prodotti digitali.",
-    group: "core",
   },
   {
     to: "/profilo",
