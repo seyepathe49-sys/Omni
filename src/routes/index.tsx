@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUp, CalendarDays, CheckSquare, Globe, LoaderCircle, Maximize2, Minimize2, Paperclip, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/")({
@@ -22,7 +22,7 @@ function Index() {
   const [showPreview, setShowPreview] = useState(false);
   const suggestions = ["Crea un sito portfolio moderno", "Fammi una landing page per un'app", "Crea un sito per un ristorante"];
 
-  const submitPrompt = async (event?: React.FormEvent) => {
+  const submitPrompt = async (event?: FormEvent) => {
     event?.preventDefault();
     const request = prompt.trim();
     if (!request || isGenerating) return;
