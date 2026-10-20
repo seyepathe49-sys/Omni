@@ -63,9 +63,9 @@ export const MODULES: OmnaModule[] = [
   },
   {
     to: "/studio",
-    label: "Studio",
+    label: "OmniStudio",
     icon: BookOpen,
-    description: "Corsi, materiale e abitudini di apprendimento.",
+    description: "Crea siti, prototipi e prodotti digitali con l’intelligenza artificiale.",
     group: "life",
   },
   {
