@@ -29,21 +29,19 @@ function htmlOnly(text: string) {
 }
 
 async function generateWithOpenAI(apiKey: string, model: string, prompt: string, currentHtml: string) {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
-      temperature: 0.2,
-      messages: [
-        { role: "system", content: "You are OmniStudio, an expert web product builder. Return ONLY a complete, self-contained HTML document with inline CSS and JavaScript. No markdown fences or explanations. Make it polished, responsive, accessible, and functional. Never include secrets or attempt to escape the iframe sandbox. Use only front-end browser capabilities; explain via visible UI if a backend is needed." },
-        { role: "user", content: currentHtml ? `Update this existing project according to the request. Preserve useful features and return the entire updated HTML document.\n\nREQUEST:\n${prompt}\n\nCURRENT HTML:\n${currentHtml}` : `Create a complete polished responsive website as a single HTML file.\n\nREQUEST:\n${prompt}` },
-      ],
+      instructions: "You are OmniStudio, an expert web product builder. Return ONLY a complete, self-contained HTML document with inline CSS and JavaScript. No markdown fences or explanations. Make it polished, responsive, accessible, and functional. Never include secrets or attempt to escape the iframe sandbox. Use only front-end browser capabilities; explain visibly if a backend is needed.",
+      input: currentHtml ? `Update this existing project according to the request. Preserve useful features and return the entire updated HTML document.\\n\\nREQUEST:\\n${prompt}\\n\\nCURRENT HTML:\\n${currentHtml}` : `Create a complete polished responsive website as a single HTML file.\\n\\nREQUEST:\\n${prompt}`,
+      max_output_tokens: 12000,
     }),
   });
-  const data = await response.json() as { error?: { message?: string }; choices?: { message?: { content?: string } }[] };
+  const data = await response.json() as { error?: { message?: string }; output_text?: string; output?: { content?: { type?: string; text?: string }[] }[] };
   if (!response.ok) throw new Error(data.error?.message ?? `OpenAI ha risposto con HTTP ${response.status}.`);
-  const result = data.choices?.[0]?.message?.content;
+  const result = data.output_text ?? data.output?.flatMap((item) => item.content ?? []).filter((part) => part.type === "output_text" || part.type === "text").map((part) => part.text ?? "").join("");
   if (!result) throw new Error("Il modello OpenAI ha restituito una risposta vuota.");
   return result;
 }
