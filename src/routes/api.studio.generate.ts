@@ -109,7 +109,7 @@ export const Route = createFileRoute("/api/studio/generate")({
             return Response.json({ error: "Richiesta non valida. Controlla prompt, modello e dimensione del progetto." }, { status: 400 });
           }
           const { prompt, provider, model, currentHtml } = parsed.data;
-          const env = process.env as Record<string, string | undefined>;
+          const env = typeof process !== "undefined" ? process.env as Record<string, string | undefined> : {};
           const keys: Record<Provider, string | undefined> = {
             openai: env.OPENAI_API_KEY,
             anthropic: env.ANTHROPIC_API_KEY,
