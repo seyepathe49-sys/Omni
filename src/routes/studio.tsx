@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, Code2,
-  Command, ExternalLink, Eye, FileCode2, Folder, Globe, LayoutTemplate,
-  LoaderCircle, Monitor, MoreHorizontal, PanelLeft, Play, Plus, RefreshCw,
-  Rocket, Smartphone, Sparkles, Terminal, Trash2, WandSparkles, X
+  ArrowRight, ArrowUp, Check, ChevronDown, Code2, Command, ExternalLink,
+  Eye, FileCode2, Folder, Globe, LayoutTemplate, LoaderCircle, Monitor,
+  MoreHorizontal, Play, Plus, RefreshCw, Smartphone, Sparkles, Terminal,
+  Trash2, WandSparkles, X
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 
