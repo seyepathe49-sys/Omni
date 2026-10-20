@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight, ArrowUp, Check, ChevronDown, Code2, Command, ExternalLink,
   Eye, FileCode2, Folder, Globe, LayoutTemplate, LoaderCircle, Monitor,
@@ -47,6 +47,10 @@ export const Route = createFileRoute("/studio")({
 
 function StudioPage() {
   const [prompt, setPrompt] = useState("");
+  const [provider, setProvider] = useState<"openai" | "anthropic" | "gemini">("openai");
+  const [model, setModel] = useState("gpt-4.1");
+  const [hydrated, setHydrated] = useState(false);
+  const previewRef = useRef<HTMLIFrameElement | null>(null);
   const [activeTab, setActiveTab] = useState<"preview" | "console" | "files">("preview");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [html, setHtml] = useState(initialHtml);
@@ -55,11 +59,48 @@ function StudioPage() {
   const [lines, setLines] = useState<ConsoleLine[]>([
     { id: 1, time: "14:02:11", level: "success", message: "OmniStudio runtime inizializzato." },
     { id: 2, time: "14:02:11", level: "info", message: "Ambiente preview isolato pronto." },
-    { id: 3, time: "14:02:12", level: "info", message: "Nessun backend AI collegato: modalità demo locale." },
+    { id: 3, time: timeNow(), level: "info", message: "Generazione AI server-side disponibile quando il provider è configurato." },
   ]);
   const [showCode, setShowCode] = useState(false);
   const [saved, setSaved] = useState(true);
   const previewTitle = useMemo(() => projectName.trim() || "Nuovo progetto", [projectName]);
+  const instrumentedHtml = useMemo(() => {
+    const bridge = '<script>(function(){const send=(level,args)=>{try{window.parent.postMessage({type:"omni-studio-console",level,message:Array.from(args).map(v=>{try{return typeof v==="string"?v:JSON.stringify(v)}catch{return String(v)}}).join(" ").slice(0,1500)},"*")}catch{}};["log","info","warn","error"].forEach(level=>{const original=console[level].bind(console);console[level]=(...args)=>{send(level,args);original(...args)}});window.addEventListener("error",e=>send("error",[e.message+" ("+e.filename+":"+e.lineno+")"]));window.addEventListener("unhandledrejection",e=>send("error",["Unhandled promise rejection",e.reason]));window.addEventListener("load",()=>send("success",["Pagina caricata: "+document.title]));})();<\\/script>';
+    return /<\\/head\\s*>/i.test(html) ? html.replace(/<\\/head\\s*>/i, bridge + "</head>") : html;
+  }, [html]);
+
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem("omni-studio-draft-v1");
+      if (draft) {
+        const parsed = JSON.parse(draft) as { html?: string; projectName?: string; provider?: string; model?: string };
+        if (parsed.html && /<html[\\s>]/i.test(parsed.html)) setHtml(parsed.html);
+        if (parsed.projectName) setProjectName(parsed.projectName);
+        if (parsed.provider === "openai" || parsed.provider === "anthropic" || parsed.provider === "gemini") setProvider(parsed.provider);
+        if (parsed.model) setModel(parsed.model);
+        setLines((current) => [...current, { id: Date.now(), time: timeNow(), level: "success", message: "Bozza precedente ripristinata da questo dispositivo." }]);
+      }
+    } catch { /* Ignore invalid local drafts. */ }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try { localStorage.setItem("omni-studio-draft-v1", JSON.stringify({ html, projectName, provider, model })); setSaved(true); }
+    catch { addLine("warn", "Spazio locale non disponibile: esporta il progetto per non perdere le modifiche."); }
+  }, [html, projectName, provider, model, hydrated]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!previewRef.current || event.source !== previewRef.current.contentWindow) return;
+      const data = event.data as { type?: string; level?: string; message?: string };
+      if (data?.type !== "omni-studio-console" || typeof data.message !== "string") return;
+      const level: ConsoleLine["level"] = data.level === "error" ? "error" : data.level === "warn" ? "warn" : data.level === "success" ? "success" : "info";
+      setLines((current) => [...current, { id: Date.now() + Math.random(), time: timeNow(), level, message: data.message!.slice(0, 1500) }].slice(-100));
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   const addLine = (level: ConsoleLine["level"], message: string) => {
     setLines((current) => [...current, { id: Date.now() + Math.random(), time: timeNow(), level, message }].slice(-100));
@@ -77,32 +118,35 @@ function StudioPage() {
     }, 450);
   };
 
-  const buildFromPrompt = () => {
+  const buildFromPrompt = async () => {
     const request = prompt.trim();
     if (!request || isRunning) return;
     setIsRunning(true);
     setSaved(false);
-    addLine("info", `Richiesta ricevuta: “${request}”`);
-    addLine("info", "Analisi della richiesta in modalità demo…");
-    window.setTimeout(() => {
-      const normalized = request.toLowerCase();
-      let nextHtml = initialHtml;
-      if (normalized.includes("ristorante") || normalized.includes("food") || normalized.includes("cucina")) {
-        nextHtml = initialHtml.replace("form.®", "TAVOLA").replace("Indipendent digital studio", "Cucina contemporanea").replace("Idee chiare.<br>Esperienze migliori.", "Il gusto<br>di stare insieme.").replace("Progettiamo esperienze digitali essenziali, prodotti curati e identità che aiutano le idee a diventare realtà.", "Ingredienti scelti, piatti stagionali e un luogo dove sentirsi a casa. Prenota il tuo tavolo e scopri il nostro menu.").replace("Direzione creativa", "Menu stagionale").replace("Prodotti digitali", "La nostra cucina").replace("Brand systems", "Prenota un tavolo");
-      } else if (normalized.includes("portfolio") || normalized.includes("designer") || normalized.includes("fotograf")) {
-        nextHtml = initialHtml.replace("form.®", "PATHE").replace("Indipendent digital studio", "Portfolio personale").replace("Idee chiare.<br>Esperienze migliori.", "Design che<br>prende forma.").replace("Progettiamo esperienze digitali essenziali, prodotti curati e identità che aiutano le idee a diventare realtà.", "Una raccolta di progetti, esperimenti e prodotti digitali. Un approccio essenziale, guidato dalla curiosità e dalla cura dei dettagli.").replace("Direzione creativa", "Progetti selezionati").replace("Prodotti digitali", "Esperimenti").replace("Brand systems", "Contatti");
-      } else {
-        nextHtml = initialHtml.replace("form.®", "STUDIO").replace("Indipendent digital studio", "Esperienza digitale").replace("Idee chiare.<br>Esperienze migliori.", "La tua idea.<br>Il prossimo passo.").replace("Progettiamo esperienze digitali essenziali, prodotti curati e identità che aiutano le idee a diventare realtà.", "Un'esperienza digitale progettata per rendere semplice ciò che conta. Scopri il progetto e inizia oggi.").replace("Direzione creativa", "Pianifica").replace("Prodotti digitali", "Realizza").replace("Brand systems", "Lancia");
-      }
-      setHtml(nextHtml);
+    setActiveTab("console");
+    addLine("info", `Richiesta inviata a ${provider} · modello ${model}.`);
+    try {
+      const response = await fetch("/api/studio/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: request, provider, model, currentHtml: projectName === "Nuovo progetto" ? "" : html }),
+      });
+      const data = await response.json() as { html?: string; error?: string; provider?: string; model?: string };
+      if (!response.ok || !data.html) throw new Error(data.error || `Errore server (HTTP ${response.status}).`);
+      setHtml(data.html);
       setProjectName(request.length > 32 ? request.slice(0, 32) + "…" : request);
       setSaved(true);
-      setIsRunning(false);
       setActiveTab("preview");
-      addLine("success", "Bozza HTML demo generata e caricata nell'anteprima.");
-      addLine("warn", "Per generazione AI reale, collegare un provider e un endpoint backend sicuro.");
+      addLine("success", `Progetto generato con ${data.provider} / ${data.model}.`);
+      addLine("info", "Anteprima sandbox aggiornata.");
       setPrompt("");
-    }, 700);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Errore imprevisto durante la generazione.";
+      addLine("error", message);
+      setActiveTab("console");
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const clearConsole = () => setLines([{ id: Date.now(), time: timeNow(), level: "info", message: "Console pulita." }]);
@@ -151,7 +195,7 @@ function StudioPage() {
                     <div className="mx-auto flex max-w-[360px] items-center gap-2 rounded-md border border-[#e8e8e8] bg-white px-3 py-1 text-[10px] text-[#777]"><Globe className="size-2.5" /> localhost / preview</div>
                     <ExternalLink className="size-3 text-[#888]" />
                   </div>
-                  <iframe title={`Anteprima di ${previewTitle}`} sandbox="allow-scripts" srcDoc={html} className="min-h-[440px] w-full flex-1 border-0 bg-white" />
+                  <iframe ref={previewRef} title={`Anteprima di ${previewTitle}`} sandbox="allow-scripts" srcDoc={instrumentedHtml} className="min-h-[440px] w-full flex-1 border-0 bg-white" />
                 </div>
                 <p className="mt-3 flex items-center gap-2 text-[10px] text-white/45"><Check className="size-3 text-emerald-400" /> Anteprima isolata · nessun accesso ai dati dell'app</p>
               </div>}
@@ -181,7 +225,9 @@ function StudioPage() {
                 <div className="mb-5 flex size-9 items-center justify-center rounded-xl border border-border bg-surface"><Sparkles className="size-4" /></div>
                 <h2 className="font-display text-xl font-semibold tracking-tight">Cosa costruiamo?</h2>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Descrivi il risultato che vuoi ottenere. Potrai vederlo nell'anteprima e controllare l'esecuzione dalla console.</p>
-                <div className="mt-5 space-y-2">
+                <div className="mt-5 space-y-3">
+                  <div className="space-y-1.5"><label htmlFor="studio-provider" className="text-[10px] text-muted-foreground">Provider AI</label><select id="studio-provider" value={provider} onChange={(e) => { const next = e.target.value as "openai" | "anthropic" | "gemini"; setProvider(next); setModel(next === "openai" ? "gpt-4.1" : next === "anthropic" ? "claude-sonnet-4-5" : "gemini-2.5-pro"); setSaved(false); }} className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-white/25"><option value="openai">OpenAI</option><option value="anthropic">Anthropic Claude</option><option value="gemini">Google Gemini</option></select></div>
+                  <div className="space-y-1.5"><label htmlFor="studio-model" className="text-[10px] text-muted-foreground">ID modello API</label><input id="studio-model" value={model} onChange={(e) => { setModel(e.target.value); setSaved(false); }} placeholder="ID esatto del modello" className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-white/25" /><p className="text-[9px] leading-relaxed text-muted-foreground">Inserisci l’ID del modello disponibile nel tuo account API.</p></div>
                   <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Prova un'idea</p>
                   {[
                     { icon: LayoutTemplate, label: "Crea un portfolio personale" },
@@ -194,7 +240,7 @@ function StudioPage() {
                     <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); buildFromPrompt(); } }} placeholder="Descrivi il sito o la modifica…" rows={4} className="w-full resize-y bg-transparent text-xs leading-relaxed outline-none placeholder:text-muted-foreground/70" />
                     <div className="mt-3 flex items-center justify-between"><span className="text-[9px] text-muted-foreground">Invio per inviare · ⇧ Invio per andare a capo</span><button aria-label="Invia richiesta" onClick={buildFromPrompt} disabled={!prompt.trim() || isRunning} className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background transition hover:opacity-85 disabled:opacity-30">{isRunning ? <LoaderCircle className="size-3.5 animate-spin" /> : <ArrowUp className="size-4" />}</button></div>
                   </div>
-                  <div className="mt-3 flex items-start gap-2 text-[10px] leading-relaxed text-muted-foreground"><Command className="mt-0.5 size-3 shrink-0" /><span>Modalità demo: le richieste generano una bozza locale. Collega un modello AI lato server per modifiche reali e progetti persistenti.</span></div>
+                  <div className="mt-3 flex items-start gap-2 text-[10px] leading-relaxed text-muted-foreground"><Command className="mt-0.5 size-3 shrink-0" /><span>Le chiavi API restano sul server. Le bozze sono salvate su questo dispositivo; configura il segreto del provider per generare progetti.</span></div>
                 </div>
               </div>
             </aside>
