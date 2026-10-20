@@ -26,7 +26,7 @@ function Index() {
     event?.preventDefault();
     const request = prompt.trim();
     if (!request || isGenerating) return;
-    const websiteRequest = /\b(sito|website|landing|pagina web|portfolio|web app|homepage|e-commerce|ecommerce|pagina internet)\b/i.test(request);
+    const websiteRequest = Boolean(html) || /\b(sito|website|landing|pagina web|portfolio|web app|homepage|e-commerce|ecommerce|pagina internet)\b/i.test(request);
     if (!websiteRequest) {
       setError("Per generare un'anteprima qui, descrivi il sito che vuoi creare (es. “Crea un sito portfolio”).");
       return;
