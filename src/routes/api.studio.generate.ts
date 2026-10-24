@@ -86,10 +86,28 @@ export const Route = createFileRoute("/api/studio/generate")({
     handlers: {
       POST: async ({ request }) => {
         const origin = request.headers.get("origin");
-        let requestOrigin = "";
-        try { requestOrigin = new URL(request.url).origin; } catch { /* Invalid request URL. */ }
-        if (!origin || origin !== requestOrigin) {
-          return Response.json({ error: "Origine della richiesta non valida. Ricarica OmniStudio e riprova." }, { status: 403 });
+        let originHost = "";
+        let requestHost = "";
+        let requestProtocol = "";
+        try {
+          const parsedOrigin = origin ? new URL(origin) : null;
+          const requestUrl = new URL(request.url);
+          originHost = parsedOrigin?.host.toLowerCase() ?? "";
+          requestHost = (
+            request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+            request.headers.get("host") ||
+            requestUrl.host
+          ).toLowerCase();
+          requestProtocol = (
+            request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+            requestUrl.protocol.replace(":", "")
+          ).toLowerCase();
+          if (!origin || !parsedOrigin || !["http:", "https:"].includes(parsedOrigin.protocol) ||
+              originHost !== requestHost || parsedOrigin.protocol !== `${requestProtocol}:`) {
+            return Response.json({ error: "Origine della richiesta non valida. Ricarica Omni e riprova." }, { status: 403 });
+          }
+        } catch {
+          return Response.json({ error: "Richiesta non valida. Ricarica Omni e riprova." }, { status: 403 });
         }
         const clientId = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
         const now = Date.now();
