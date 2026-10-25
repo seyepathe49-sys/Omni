@@ -3,10 +3,12 @@ import { ArrowUp, CalendarDays, CheckSquare, Globe, LoaderCircle, Maximize2, Min
 import { useState, type FormEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 
+type ChatMessage = { role: "user" | "assistant"; content: string };
+
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
     { title: "Omni — Chat" },
-    { name: "description", content: "Chatta con Omni e crea siti con anteprima direttamente qui." },
+    { name: "description", content: "Chatta con Omni, cerca informazioni sul web e crea siti con anteprima direttamente qui." },
   ]}),
   component: Index,
 });
@@ -20,34 +22,47 @@ function Index() {
   const [error, setError] = useState("");
   const [fullScreen, setFullScreen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const suggestions = ["Crea un sito portfolio moderno", "Fammi una landing page per un'app", "Crea un sito per un ristorante"];
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const suggestions = ["Crea un sito portfolio moderno", "Cerca le ultime novità sull'AI", "Aiutami a pianificare un progetto"];
 
   const submitPrompt = async (event?: FormEvent) => {
     event?.preventDefault();
     const request = prompt.trim();
     if (!request || isGenerating) return;
-    const websiteRequest = Boolean(html) || /\b(sito|website|landing|pagina web|portfolio|web app|homepage|e-commerce|ecommerce|pagina internet)\b/i.test(request);
-    if (!websiteRequest) {
-      setError("Per generare un'anteprima qui, descrivi il sito che vuoi creare (es. “Crea un sito portfolio”).");
-      return;
-    }
 
+    const websiteRequest = /\b(sito|website|landing|pagina web|portfolio|web app|homepage|e-commerce|ecommerce|pagina internet|rifai il sito|redesign|ridisegna)\b/i.test(request);
     setIsGenerating(true);
     setError("");
+    setMessages((current) => [...current, { role: "user", content: request }]);
+    setPrompt("");
+
     try {
-      const response = await fetch("/api/studio/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: request, provider: "openai", model: "gpt-4.1", currentHtml: html }),
-      });
-      const data = await response.json() as { html?: string; error?: string };
-      if (!response.ok || !data.html) throw new Error(data.error || `Errore server (HTTP ${response.status}).`);
-      setHtml(data.html);
-      setProjectName(request.length > 48 ? request.slice(0, 48) + "…" : request);
-      setShowPreview(true);
-      setPrompt("");
+      if (websiteRequest || html) {
+        const response = await fetch("/api/studio/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: request, provider: "openai", model: "gpt-4.1", currentHtml: html }),
+        });
+        const data = await response.json() as { html?: string; error?: string };
+        if (!response.ok || !data.html) throw new Error(data.error || `Errore server (HTTP ${response.status}).`);
+        setHtml(data.html);
+        setProjectName(request.length > 48 ? request.slice(0, 48) + "…" : request);
+        setShowPreview(true);
+        setMessages((current) => [...current, { role: "assistant", content: "Ho generato una prima versione del sito. Puoi visualizzarla nell'anteprima qui sotto e chiedermi altre modifiche." }]);
+      } else {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: request, history: messages.slice(-12) }),
+        });
+        const data = await response.json() as { answer?: string; error?: string };
+        if (!response.ok || !data.answer) throw new Error(data.error || `Errore server (HTTP ${response.status}).`);
+        setMessages((current) => [...current, { role: "assistant", content: data.answer! }]);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Non sono riuscito a generare il sito. Riprova.");
+      const message = err instanceof Error ? err.message : "Non sono riuscito a completare la richiesta. Riprova.";
+      setError(message);
+      setMessages((current) => [...current, { role: "assistant", content: `Non sono riuscito a completare questa richiesta: ${message}` }]);
     } finally {
       setIsGenerating(false);
     }
@@ -64,10 +79,17 @@ function Index() {
             <div className="omna-orb-core"><Sparkles className="size-5 text-white/90" strokeWidth={1.5} /></div>
           </div>
           <p className="omna-eyebrow">OMNI · CHAT</p>
-          <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Ciao Pathe, cosa creiamo?</h1>
+          <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Ciao Pathe, cosa facciamo?</h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Scrivi quello che hai in mente. Se chiedi un sito, Omni lo genera e ti mostra l'anteprima direttamente in questa chat, senza mandarti per forza in OmniStudio.
+            Chiedimi qualsiasi cosa. Posso aiutarti a ragionare, cercare informazioni sul web e creare siti con anteprima direttamente qui.
           </p>
+
+          {messages.length > 0 && <div className="mx-auto mt-8 flex w-full max-w-3xl flex-col gap-4 text-left">
+            {messages.map((message, index) => <article key={index} className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${message.role === "user" ? "ml-8 border-border bg-surface" : "mr-8 border-border/70 bg-background"}`}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{message.role === "user" ? "Tu" : "Omni"}</p>
+              {message.content}
+            </article>)}
+          </div>}
 
           {showPreview && html && (
             <section className="mt-8 overflow-hidden rounded-2xl border border-border bg-surface text-left shadow-2xl">
@@ -87,15 +109,15 @@ function Index() {
               <button type="button" aria-label="Allega" className="omna-icon-button"><Paperclip className="size-[17px]" strokeWidth={1.7} /></button>
               <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
                 onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void submitPrompt(); } }}
-                rows={2} placeholder="Chiedi a Omni di creare un sito..." aria-label="Messaggio" className="omna-textarea" />
+                rows={2} placeholder="Chiedi qualsiasi cosa a Omni..." aria-label="Messaggio" className="omna-textarea" />
               <button type="submit" aria-label="Invia" disabled={!prompt.trim() || isGenerating} className="omna-send">{isGenerating ? <LoaderCircle className="size-[17px] animate-spin" /> : <ArrowUp className="size-[17px]" strokeWidth={2} />}</button>
             </div>
             <div className="mt-2 flex items-center justify-between px-1">
               <span className="text-[10px] text-muted-foreground/60">Invio · Shift + Invio per andare a capo</span>
-              <span className="hidden text-[10px] text-muted-foreground/60 sm:block">OpenAI · GPT-4.1</span>
+              <span className="hidden text-[10px] text-muted-foreground/60 sm:block">OpenAI · GPT-4.1 con ricerca web</span>
             </div>
           </form>
-          {isGenerating && <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground"><LoaderCircle className="size-3.5 animate-spin" /> Omni sta costruendo il sito…</p>}
+          {isGenerating && <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground"><LoaderCircle className="size-3.5 animate-spin" /> Omni sta lavorando…</p>}
           {error && <p role="alert" className="mx-auto mt-3 max-w-xl rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-left text-xs leading-relaxed text-red-300">{error}</p>}
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             {suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => { setPrompt(suggestion); setError(""); }} className="omna-suggestion">{suggestion}</button>)}
