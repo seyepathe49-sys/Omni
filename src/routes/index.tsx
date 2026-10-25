@@ -37,7 +37,7 @@ function Index() {
     setPrompt("");
 
     try {
-      if (websiteRequest || html) {
+      if (websiteRequest || editWebsiteRequest) {
         const response = await fetch("/api/studio/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
